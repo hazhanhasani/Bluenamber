@@ -1,6 +1,6 @@
 import { NUMBER_TYPES, PROVIDER_STEPS } from "./number-domain.js";
 import { isCallinooConfigured, CallinooAdapter } from "./callinoo-adapter.js";
-import { normalizeServices, normalizeCountryAvailability } from "./service-catalog.js";
+import { normalizeServices, normalizeCountryAvailability, normalizePackages } from "./service-catalog.js";
 import { landingResponse, faviconResponse } from "./landing.js";
 
 const BRAND = "BlueNumber";
@@ -123,6 +123,33 @@ export default {
         return json({provider:"callinoo",providerConnected:true,items,paymentsEnabled:false});
       } catch {
         return json({error:"UPSTREAM_UNAVAILABLE",providerConnected:false,items:[]},502);
+      }
+    }
+    if (request.method === "GET" && url.pathname === "/v1/other-services") {
+      if (!isCallinooConfigured(env))
+        return json({error:"PROVIDER_NOT_CONFIGURED",items:[]},503);
+      const category=url.searchParams.get("category")||"";
+      if (!["stars","premium","telegram-numbers"].includes(category))
+        return json({error:"INVALID_CATEGORY",items:[]},400);
+      const markup=typeof env.RETAIL_MARKUP_BPS==="string" &&
+        /^[0-9]{1,6}$/.test(env.RETAIL_MARKUP_BPS) ?
+        Number(env.RETAIL_MARKUP_BPS) : null;
+      const fixed=typeof env.RETAIL_FIXED_FEE_TOMAN==="string" &&
+        /^[0-9]{1,10}$/.test(env.RETAIL_FIXED_FEE_TOMAN) ?
+        Number(env.RETAIL_FIXED_FEE_TOMAN) : 0;
+      try {
+        const api=new CallinooAdapter({token:env.CALLINOO_API_TOKEN});
+        const remote=category==="stars" ? await api.listStars() :
+          category==="premium" ? await api.listPremium() :
+          await api.listTelegramNumbers();
+        const items=category==="telegram-numbers"
+          ? normalizeCountryAvailability(remote,markup,fixed)
+          : normalizePackages(remote,category,markup,fixed);
+        return json({provider:"callinoo",category,items,currency:"TOMAN",
+          pricingConfigured:markup!==null&&markup>=0&&markup<=100000,
+          paymentsEnabled:false});
+      } catch {
+        return json({error:"UPSTREAM_UNAVAILABLE",category,items:[]},502);
       }
     }
     if (request.method === "GET" && url.pathname === "/v1/quotes") {
