@@ -45,7 +45,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 data class CatalogProduct(val id: String, val sku: String, val title: String, val description: String)
-data class CatalogState(val enabled: Boolean, val products: List<CatalogProduct>, val notice: String)
+data class CatalogState(val enabled: Boolean, val products: List<CatalogProduct>, val notice: String, val providerConfigured: Boolean = false)
 data class NumberType(val id: String, val title: String, val description: String)
 
 class MainActivity : ComponentActivity() {
@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
                                     Column(Modifier.padding(24.dp)) {
                                         Text("محصولات به‌زودی فعال می‌شوند", fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.height(12.dp))
-                                        Text("فهرست شماره‌ها بعد از اتصال و تأیید API کالینو نمایش داده می‌شود.")
+                                        Text(if (state.providerConfigured) "کلید کالینو در سرور ثبت شده است. نمایش قیمت‌ها و فروش پس از تأیید پاسخ API و تحویل خودکار فعال می‌شود." else "کلید کالینو هنوز در سرور تنظیم نشده است؛ فعلاً امکان دریافت قیمت یا خرید وجود ندارد.")
                                     }
                                 }
                             }
@@ -184,11 +184,15 @@ class MainActivity : ComponentActivity() {
                                 product.optString("title"), product.optString("description")
                             ))
                         }
-                        CatalogState(response.optBoolean("available"), list, response.optString("notice"))
+                        CatalogState(response.optBoolean("available"), list, response.optString("notice"), response.optBoolean("providerConfigured", false))
                     } finally { connection.disconnect() }
                 }
                 state = updated
-                status = if (updated.enabled) "سرویس آماده است" else "اتصال اصلی در حال تکمیل است؛ خرید غیرفعال است."
+                status = when {
+                    updated.enabled -> "سرویس آماده است."
+                    updated.providerConfigured -> "کلید کالینو ثبت شده؛ تأیید پاسخ API، موجودی و تحویل سفارش باقی است. خرید غیرفعال است."
+                    else -> "کلید سرویس کالینو تنظیم نشده است؛ خرید غیرفعال است."
+                }
             } catch (e: Exception) {
                 status = "اتصال برقرار نشد. اتصال اینترنت را بررسی کنید."
             }

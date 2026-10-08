@@ -11,6 +11,12 @@ Native Android storefront and Cloudflare Worker for virtual-number services.
 - **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.
 - **Numberland**: removed as the active integration. Historic order records retain their original provider identifier.
 
+## Web home page
+
+- `GET /` and `/index.html` render the public RTL BlueNumber service status/landing page.
+- This landing page is **not an admin login** and does not allow user or financial management.
+- No provider credentials or SMS codes are exposed to the browser.
+
 ## API
 `GET /health`, `GET /v1/config`, `GET /v1/provider/capabilities`,
 `GET /v1/number-types`, `GET /v1/catalog`.

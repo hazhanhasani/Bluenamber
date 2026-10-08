@@ -1,5 +1,6 @@
 import { NUMBER_TYPES, PROVIDER_STEPS } from "./number-domain.js";
 import { isCallinooConfigured } from "./callinoo-adapter.js";
+import { landingResponse, faviconResponse } from "./landing.js";
 
 const BRAND = "BlueNumber";
 const PROVIDER_IMPLEMENTED = false; // No live purchases until validated adapter, auth, and fulfillment.
@@ -104,10 +105,14 @@ async function verifyPurchase(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html"))
+      return landingResponse();
+    if (request.method === "GET" && url.pathname === "/favicon.svg")
+      return faviconResponse();
     if (request.method === "GET" && url.pathname === "/health")
       return json({ ok: true, service: "bluenamber-api", version: "1.1.0" });
     if (request.method === "GET" && url.pathname === "/v1/config")
-      return json({ brand: BRAND, provider: "callinoo", paymentsEnabled: isReady(env), providerConnected: false });
+      return json({ brand: BRAND, provider: "callinoo", providerConfigured: isCallinooConfigured(env), paymentsEnabled: isReady(env), providerConnected: false });
     if (request.method === "GET" && url.pathname === "/v1/number-types")
       return json({ items: NUMBER_TYPES, live: PROVIDER_IMPLEMENTED });
     if (request.method === "GET" && url.pathname === "/v1/provider/capabilities")
@@ -115,7 +120,7 @@ export default {
     if (request.method === "POST" && url.pathname === "/v1/orders")
       return json({ error: "PROVIDER_NOT_CONNECTED", message: "Callinoo purchasing is not activated; no order has been placed" }, 503);
     if (request.method === "GET" && url.pathname === "/v1/catalog")
-      return json({ items: products(env), available: isReady(env), notice: isReady(env) ? null : "Callinoo API token and order fulfillment verification pending" });
+      return json({ items: products(env), available: isReady(env), providerConfigured: isCallinooConfigured(env), notice: isReady(env) ? null : isCallinooConfigured(env) ? "Provider token saved; live API and fulfillment verification pending" : "Provider API token not configured" });
     if (request.method === "POST" && url.pathname === "/v1/purchases/verify")
       return verifyPurchase(request, env);
     return json({ error: "NOT_FOUND" }, 404);
