@@ -1,3 +1,4 @@
+import { calculateRetailPrice } from "./number-domain.js";
 // Only fields from the official Callinoo applications response are public.
 export function normalizeServices(input) {
   if (input?.success === false) return [];
@@ -32,8 +33,11 @@ export function normalizeCountryAvailability(input, markupBps = null, fixedFee =
     const count=String(row.count || "");
     const available=count.includes("✅") && !count.includes("❌") ||
       count.includes("موجود") && !count.includes("ناموجود");
-    const retail=priced ? price+Math.ceil(price*markupBps/10000)+fixedFee : null;
-    if (retail !== null && !Number.isSafeInteger(retail)) return [];
+    let retail = null;
+    if (priced) {
+      try { retail = calculateRetailPrice(price, markupBps, fixedFee); }
+      catch { return []; }
+    }
     return [{country,range,available,retailPriceToman:retail}];
   });
 }
