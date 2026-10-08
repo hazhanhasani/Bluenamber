@@ -47,12 +47,12 @@ test("Callinoo read methods access only the configured domain and endpoints", as
   });
   await adapter.getBalance();
   await adapter.listApplications();
-  await adapter.getPrices("tg");
+  await adapter.getPrices("1");
   assert.deepEqual(called.map(x => new URL(x.url).hostname), Array(3).fill("api.ozvinoo.xyz"));
   assert.deepEqual(called.map(x => new URL(x.url).pathname),[
     "/web/my-private-token/get-balance",
     "/web/my-private-token/applications",
-    "/web/my-private-token/get-prices/tg"
+    "/web/my-private-token/get-prices/1"
   ]);
   assert.ok(called.every(x => x.init.method === "GET"));
   assert.ok(called.every(x => x.init.redirect === "manual"));
@@ -65,6 +65,7 @@ test("invalid service input rejected before outbound calls", async () => {
   const adapter=new CallinooAdapter({token:"private-1234",fetcher:async()=>{requests++;throw new Error("network")}});
   assert.throws(() => adapter.getPrices("../secret"),/INVALID_SERVICE_ID/);
   assert.throws(() => adapter.getPrices("abc?bad"),/INVALID_SERVICE_ID/);
+  assert.throws(() => adapter.getPrices("tg"),/INVALID_SERVICE_ID/);
   assert.equal(requests,0);
   await assert.rejects(adapter.reserveNumber(),/PURCHASING_DISABLED/);
   await assert.rejects(adapter.getStatus(),/STATUS_API_UNVERIFIED/);
