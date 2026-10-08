@@ -56,3 +56,19 @@ Financial routes remain disabled in production.
 Use `fetch(..., { redirect: 'manual' })` and explicitly block all HTTP 3xx responses.
 The Workers runtime does not accept `redirect: 'error'`; using it caused every
 API request to fail before contacting Callinoo. This has been corrected.
+
+## Verified live connection (2026-10-08)
+- The token saved as the `CALLINOO_API_TOKEN` Cloudflare Secret successfully authenticated against `GET /web/{token}/get-balance`. HTTP 200 and `balance` were observed; the actual balance was not logged or exposed.
+- `GET /web/{token}/applications` returned one available application, service ID `1` and code `tg`.
+- `GET /web/{token}/get-prices/1` returned 154 countries, with `country`, `range`, `count`, and supplier `price`.
+- Currency shown in the account UI is **toman**; do not mix toman with rial.
+- Official JSON OpenAPI schema: `https://api.ozvinoo.xyz/api/` (15 documented routes as checked).
+- Country availability is public but supplier cost is not. `GET /v1/quotes?serviceId=1` returns `retailPriceToman=null` until owner selects a margin.
+- Set `RETAIL_MARKUP_BPS` as a Worker environment variable (e.g. `1500` means **15 percent**); optionally `RETAIL_FIXED_FEE_TOMAN` for a fixed fee. This only enables displayed retail quotes, NEVER charging/fulfillment.
+- `GET /v1/services` exposes normalized read-only service names and IDs.
+- Purchase and SMS delivery endpoints remain disabled until verified Bazaar receipts, account authorization, order idempotency, supplier-balance sufficiency, and refund reconciliation are implemented.
+
+The upstream API has a charged operation at
+`/web/{token}/getNumber/{service_id}/{country}`. **Do not invoke that endpoint
+for inventory discovery or connection testing.** The credential must stay in
+Cloudflare Secrets, not in this repository, client apps, or public HTML.
