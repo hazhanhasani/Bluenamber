@@ -15,3 +15,9 @@ Android build uses these secrets only for the release workflow. Run workflow `An
 DO NOT publish a release signed by the default debug key.
 
 Cafe Bazaar's PUBLIC RSA billing key is a separate key; it is not the APK signing certificate.
+
+## BlueNumber original release certificate
+
+Certificate SHA-256: `17:4A:64:3D:95:D7:46:FA:C3:45:29:2C:31:DB:0B:53:E5:ED:9A:9F:11:38:6E:22:7D:7C:DD:15:20:FE:2B:AB`
+
+Compare this fingerprint before publishing every new version; it identifies the permanently created release key.
