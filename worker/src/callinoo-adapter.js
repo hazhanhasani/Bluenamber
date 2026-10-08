@@ -75,6 +75,45 @@ export class CallinooAdapter {
     return this.#get("get-prices", serviceId);
   }
 
+  // Separate documented Callinoo API family, authenticated by Bearer token.
+  // Allow only these read-only GET endpoints. No buy/create methods here.
+  async #getBearer(category) {
+    const endpoints = {
+      stars: "/telegram-services/stars/",
+      premium: "/telegram-services/premium/",
+      "telegram-numbers": "/telegram-numbers/numbers/"
+    };
+    if (!Object.hasOwn(endpoints, category)) throw new CallinooError("INVALID_CATEGORY");
+    const url=BASE + endpoints[category];
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),this.timeoutMs);
+    try {
+      const result=await this.fetcher(url,{
+        method:"GET",
+        headers:{Authorization:"Bearer "+this.token,Accept:"application/json"},
+        signal:controller.signal,
+        redirect:"manual",
+        cache:"no-store"
+      });
+      if(result.status>=300&&result.status<400)throw new CallinooError("UPSTREAM_REDIRECT_BLOCKED");
+      if(!result.ok)throw new CallinooError("UPSTREAM_HTTP_"+result.status);
+      const body=await result.text();
+      if(body.length>262144)throw new CallinooError("UPSTREAM_RESPONSE_TOO_LARGE");
+      let parsed;
+      try{parsed=JSON.parse(body)}catch{throw new CallinooError("INVALID_UPSTREAM_JSON")}
+      if(!parsed||typeof parsed!=="object"||parsed.status!==true||!Array.isArray(parsed.data))
+        throw new CallinooError("INVALID_UPSTREAM_RESPONSE");
+      return parsed.data;
+    }catch(error){
+      if(error instanceof CallinooError)throw error;
+      throw new CallinooError("UPSTREAM_UNAVAILABLE");
+    }finally{clearTimeout(timer)}
+  }
+
+  listStars() { return this.#getBearer("stars"); }
+  listPremium() { return this.#getBearer("premium"); }
+  listTelegramNumbers() { return this.#getBearer("telegram-numbers"); }
+
   // Deliberately not supported until receipt validation, anti-double-charge,
   // exact response schemas and refunds have all been confirmed.
   async reserveNumber() { throw new CallinooError("PURCHASING_DISABLED"); }
