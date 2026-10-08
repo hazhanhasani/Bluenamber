@@ -36,3 +36,9 @@ cd ../android && gradle :app:assembleDebug
 ```
 For release signing, retain the permanent original keystore as described in
 `docs/SIGNING.md`. Never commit release signing keys or third-party API tokens.
+
+**Android update signature warning:** runner-generated CI debug APKs have
+rotating signing keys. They cannot replace another CI debug APK installed under
+the same package. Use the permanent release key for every distributed update;
+users of old debug builds must uninstall the incompatible debug package once.
+The release version is now `1.0.1` (`versionCode=2`).

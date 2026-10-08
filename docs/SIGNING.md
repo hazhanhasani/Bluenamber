@@ -14,6 +14,28 @@ Android build uses these secrets only for the release workflow. Run workflow `An
 
 DO NOT publish a release signed by the default debug key.
 
+## Important: debug APK collision / installation conflict
+
+A fresh GitHub-hosted runner generates a new debug keystore, so Android CI debug
+artifacts from different workflow runs have **different signing certificates**.
+With the same application ID, Android blocks installation as an update. Neither
+reinstalling over the old APK nor increasing versionCode fixes a signature mismatch.
+
+**One-time migration:** if the installed `ir.bluenumber.app` was a CI debug APK,
+back up any user data if applicable, uninstall that debug app, and install the
+APK signed using the permanent release certificate below. All future version
+upgrades must use that same original signing key and an increasing versionCode.
+
+Release builds must be built as the `release` variant and signed by the original
+keystore. The workflow `unsigned-release` creates an **unsigned** release APK
+for offline signing and testing; do NOT install or distribute this unsigned file.
+
+To enable repeatable signed builds without uploading a private key to the public
+repository, configure encrypted GitHub Actions secrets (see above), then run
+`Android CI > Run workflow` to produce `bluenamber-signed-release`.
+Verify the APK certificate fingerprint and versionCode before distribution.
+
+
 Cafe Bazaar's PUBLIC RSA billing key is a separate key; it is not the APK signing certificate.
 
 ## BlueNumber original release certificate
