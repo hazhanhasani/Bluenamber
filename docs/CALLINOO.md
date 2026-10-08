@@ -72,3 +72,18 @@ The upstream API has a charged operation at
 `/web/{token}/getNumber/{service_id}/{country}`. **Do not invoke that endpoint
 for inventory discovery or connection testing.** The credential must stay in
 Cloudflare Secrets, not in this repository, client apps, or public HTML.
+
+## BlueNumber retail margin (2026-10-08)
+
+Configured selling margin: **20 percent** over supplier Toman prices.
+`worker/wrangler.toml` persists `RETAIL_MARKUP_BPS = "2000"` and
+`RETAIL_FIXED_FEE_TOMAN = "0"`.
+The live Cloudflare Worker has both settings deployed.
+The calculation is `supplier + ceil(supplier * 2000 / 10000)` in whole Toman,
+with safe-integer validation. E.g. supplier 12000 Toman -> customer 14400 Toman.
+Wholesale price and API credentials are not returned by public endpoints.
+
+Website and Android 1.0.2 already request `/v1/quotes?serviceId=<id>`
+and display `retailPriceToman` as the end-user price.
+No APK upgrade is necessary solely for this change.
+Purchasing and Bazaar payment remain intentionally disabled.
