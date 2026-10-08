@@ -63,8 +63,8 @@ test("Callinoo read methods access only the configured domain and endpoints", as
 test("invalid service input rejected before outbound calls", async () => {
   let requests=0;
   const adapter=new CallinooAdapter({token:"private-1234",fetcher:async()=>{requests++;throw new Error("network")}});
-  await assert.rejects(adapter.getPrices("../secret"),/INVALID_SERVICE_ID/);
-  await assert.rejects(adapter.getPrices("abc?bad"),/INVALID_SERVICE_ID/);
+  assert.throws(() => adapter.getPrices("../secret"),/INVALID_SERVICE_ID/);
+  assert.throws(() => adapter.getPrices("abc?bad"),/INVALID_SERVICE_ID/);
   assert.equal(requests,0);
   await assert.rejects(adapter.reserveNumber(),/PURCHASING_DISABLED/);
   await assert.rejects(adapter.getStatus(),/STATUS_API_UNVERIFIED/);
