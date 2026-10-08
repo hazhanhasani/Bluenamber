@@ -1,15 +1,27 @@
 # BlueNumber / بلونامبر
 
 Native Android storefront and Cloudflare Worker for virtual-number services.
-**Provider: Callinoo (Ozvinoo API)** — https://api.ozvinoo.xyz/\n\nLive read-only service/country inventory is connected. Billing and ordering remain disabled.
+**Provider: Callinoo (Ozvinoo API)** — https://api.ozvinoo.xyz/
+
+Live read-only service/country inventory is connected. Billing and ordering remain disabled.
 
 ## Current deployment status
 - **GitHub**: https://github.com/hazhanhasani/Bluenamber
 - **Worker**: https://bluenamber.hazhanhasani4268-0f9.workers.dev
 - **Database**: Cloudflare D1 `bluenamber-db`
 - **Android**: Kotlin / Jetpack Compose; package `ir.bluenumber.app`
-- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.\n- **Browse live country stock**: `/v1/services`, `/v1/quotes?serviceId=1`. Retail prices now include a 20% markup calculated server-side in Toman; orders and payments remain disabled.
+- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.
+- **Browse live country stock**: `/v1/services`, `/v1/quotes?serviceId=1`. Retail prices include a 20% markup calculated server-side in Toman; orders and payments remain disabled.
 - **Numberland**: removed as the active integration. Historic order records retain their original provider identifier.
+
+## Live product discovery
+- Standard virtual-number application list: currently only Telegram VIP returned by the provider account.
+- 154 Telegram-specific number country offers.
+- 9 Telegram Stars packages and 3 Telegram Premium packages.
+- `GET /v1/other-services?category=stars`, `premium`, or `telegram-numbers`.
+- WhatsApp, Instagram and Google numbers are not advertised without live application inventory from a provider.
+- All public prices are final marked-up prices in Toman, not supplier prices.
+- Purchases remain disabled until authenticated order fulfillment and payment verification are complete.
 
 ## Web home page
 
@@ -41,4 +53,4 @@ For release signing, retain the permanent original keystore as described in
 rotating signing keys. They cannot replace another CI debug APK installed under
 the same package. Use the permanent release key for every distributed update;
 users of old debug builds must uninstall the incompatible debug package once.
-The release version is now `1.0.2` (`versionCode=3`).
+The release version is now `1.0.3` (`versionCode=4`).
