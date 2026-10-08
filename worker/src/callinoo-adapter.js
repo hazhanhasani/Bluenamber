@@ -12,7 +12,6 @@ export class CallinooError extends Error {
   }
 }
 const BASE = "https://api.ozvinoo.xyz";
-const ID = /^[a-zA-Z0-9_-]{1,64}$/;
 
 export function isCallinooConfigured(env) {
   return typeof env?.CALLINOO_API_TOKEN === "string" &&
@@ -25,7 +24,7 @@ export class CallinooAdapter {
       throw new CallinooError("API_TOKEN_MISSING");
     }
     this.token = token.trim();
-    this.fetcher = fetcher;
+    this.fetcher = (url, options) => fetcher(url, options); // Preserve global fetch binding.
     this.timeoutMs = timeoutMs;
   }
 
@@ -70,7 +69,7 @@ export class CallinooAdapter {
   }
 
   getPrices(serviceId) {
-    if (typeof serviceId !== "string" || !ID.test(serviceId)) {
+    if (!/^[1-9][0-9]{0,11}$/.test(String(serviceId))) {
       throw new CallinooError("INVALID_SERVICE_ID");
     }
     return this.#get("get-prices", serviceId);
