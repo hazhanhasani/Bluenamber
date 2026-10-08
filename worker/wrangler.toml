@@ -10,3 +10,4 @@ database_id = "ce9256bb-8ec0-4b7c-ac3a-259091d154e5"
 
 [vars]
 ENABLE_PURCHASES = "false"
+PROVIDER = "callinoo"

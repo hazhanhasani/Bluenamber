@@ -1,11 +1,11 @@
 // Provider-independent domain rules. Nothing here authorizes purchasing.
 export const NUMBER_TYPES = Object.freeze([
-  { id: "standard", title: "شماره عادی", description: "دریافت شماره و پیامک در بازه زمانی محدود" },
-  { id: "permanent", title: "شماره دائمی", description: "دسترسی بلندمدت؛ جزئیات و شرایط وابسته به موجودی نامبرلند" },
-  { id: "rental", title: "شماره اجاره‌ای", description: "اجاره شماره با مدت و شرایط تعیین‌شده توسط تأمین‌کننده" },
+  { id: "standard", title: "شماره مجازی موقت", description: "دریافت شماره و کد پیامکی. موجودی و قیمت پس از اتصال به کالینو نمایش داده می‌شود." }
 ]);
+// Rental/permanent numbers were listed for Numberland; do not advertise them
+// under Callinoo until corresponding provider endpoints are verified.
 
-// Local states are internal, never assume they equal Numberland's numeric codes.
+// Local states are internal; do not assume they match provider response codes.
 export const TRANSITIONS = Object.freeze({
   awaiting_payment: ["paid", "cancelled"],
   paid: ["reserving", "refund_pending"],
@@ -60,9 +60,9 @@ export function validateSelection(selection) {
 }
 
 export const PROVIDER_STEPS = Object.freeze([
-  { id: "inventory", action: "Read country/service/operator stock and supplier prices", supported: false },
-  { id: "purchase", action: "Reserve number; persist supplier numeric ID; confirm charged amount", supported: false },
-  { id: "status", action: "Poll activation status and SMS, respecting time-to-live", supported: false },
-  { id: "change_status", action: "Request cancel, finish or another SMS as allowed", supported: false },
-  { id: "reconcile", action: "Confirm supplier-side refund and settle the customer separately", supported: false },
+  { id: "inventory", action: "Read service list and price quotes", implemented: true, verified: false, supported: false },
+  { id: "purchase", action: "Reserve number with verified customer payment and provider idempotency", implemented: false, verified: false, supported: false },
+  { id: "status", action: "Fetch SMS/status with authenticated order ownership", implemented: false, verified: false, supported: false },
+  { id: "change_status", action: "Cancel, finish or resend via verified API contract", implemented: false, verified: false, supported: false },
+  { id: "reconcile", action: "Reconcile provider refund with customer refund", implemented: false, verified: false, supported: false }
 ]);

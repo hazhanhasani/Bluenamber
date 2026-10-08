@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
                                     Column(Modifier.padding(24.dp)) {
                                         Text("محصولات به‌زودی فعال می‌شوند", fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.height(12.dp))
-                                        Text("فهرست شماره‌ها بعد از اتصال و تأیید API نامبرلند نمایش داده می‌شود.")
+                                        Text("فهرست شماره‌ها بعد از اتصال و تأیید API کالینو نمایش داده می‌شود.")
                                     }
                                 }
                             }

@@ -1,8 +1,8 @@
 import { NUMBER_TYPES, PROVIDER_STEPS } from "./number-domain.js";
-import { isNumberlandConfigured } from "./numberland-adapter.js";
+import { isCallinooConfigured } from "./callinoo-adapter.js";
 
 const BRAND = "BlueNumber";
-const PROVIDER_IMPLEMENTED = isNumberlandConfigured(); // Fail closed until the real supplier API is verified.
+const PROVIDER_IMPLEMENTED = false; // No live purchases until validated adapter, auth, and fulfillment.
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -19,7 +19,7 @@ function json(data, status = 200) {
 
 function isReady(env) {
   return PROVIDER_IMPLEMENTED &&
-    !!env.DB && !!env.NUMBERLAND_API_KEY &&
+    !!env.DB && isCallinooConfigured(env) &&
     !!env.BAZAAR_ACCESS_TOKEN && !!env.BAZAAR_VALIDATE_URL &&
     env.ENABLE_PURCHASES === "true";
 }
@@ -105,17 +105,17 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/health")
-      return json({ ok: true, service: "bluenamber-api", version: "1.0.0" });
+      return json({ ok: true, service: "bluenamber-api", version: "1.1.0" });
     if (request.method === "GET" && url.pathname === "/v1/config")
-      return json({ brand: BRAND, provider: "numberland", paymentsEnabled: isReady(env), providerConnected: false });
+      return json({ brand: BRAND, provider: "callinoo", paymentsEnabled: isReady(env), providerConnected: false });
     if (request.method === "GET" && url.pathname === "/v1/number-types")
       return json({ items: NUMBER_TYPES, live: PROVIDER_IMPLEMENTED });
     if (request.method === "GET" && url.pathname === "/v1/provider/capabilities")
-      return json({ provider: "numberland", connected: PROVIDER_IMPLEMENTED, paymentsEnabled: isReady(env), steps: PROVIDER_STEPS });
+      return json({ provider: "callinoo", configured: isCallinooConfigured(env), connected: false, paymentsEnabled: isReady(env), steps: PROVIDER_STEPS });
     if (request.method === "POST" && url.pathname === "/v1/orders")
-      return json({ error: "PROVIDER_NOT_CONNECTED", message: "Real Numberland contract not configured; no order has been placed" }, 503);
+      return json({ error: "PROVIDER_NOT_CONNECTED", message: "Callinoo purchasing is not activated; no order has been placed" }, 503);
     if (request.method === "GET" && url.pathname === "/v1/catalog")
-      return json({ items: products(env), available: isReady(env), notice: isReady(env) ? null : "Integration pending provider verification" });
+      return json({ items: products(env), available: isReady(env), notice: isReady(env) ? null : "Callinoo API token and order fulfillment verification pending" });
     if (request.method === "POST" && url.pathname === "/v1/purchases/verify")
       return verifyPurchase(request, env);
     return json({ error: "NOT_FOUND" }, 404);

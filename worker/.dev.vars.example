@@ -1,7 +1,7 @@
-# Local development ONLY — do not commit the real .dev.vars
-NUMBERLAND_API_KEY=
+# Local development only. Never commit .dev.vars to Git.
+CALLINOO_API_TOKEN=
 BAZAAR_ACCESS_TOKEN=
-# Must point to official Bazaar endpoint, with {package} {sku} {token} placeholders
+# Configure only after verifying current Bazaar API details:
 BAZAAR_VALIDATE_URL=
 PRODUCTS_JSON=[]
-# Transactions remain disabled in the source until provider fulfillment is implemented
+# Purchases remain disabled; a token never enables payments automatically.

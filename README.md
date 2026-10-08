@@ -1,34 +1,32 @@
-# BlueNumber | بلونامبر
+# BlueNumber / بلونامبر
 
-Android storefront and Cloudflare Worker foundation for virtual-number services.
+Native Android storefront and Cloudflare Worker for virtual-number services.
+**Provider: Callinoo (Ozvinoo API)** — https://api.ozvinoo.xyz/
 
-**Status:** Backend deployed as a safe, non-transactional bootstrap. Numberland API contract is currently unverified, and payments are intentionally disabled.
-
-## Components
-
-- `android/` — Native Kotlin/Jetpack Compose Android app, package `ir.bluenumber.app`.
-- `worker/` — Cloudflare Worker with D1 receipt ledger and safe API routes.
-- `.github/workflows/` — Android CI and manual signed release.
-- `docs/` — integration and signing procedures.
+## Current deployment status
+- **GitHub**: https://github.com/hazhanhasani/Bluenamber
+- **Worker**: https://bluenamber.hazhanhasani4268-0f9.workers.dev
+- **Database**: Cloudflare D1 `bluenamber-db`
+- **Android**: Kotlin / Jetpack Compose; package `ir.bluenumber.app`
+- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.
+- **Numberland**: removed as the active integration. Historic order records retain their original provider identifier.
 
 ## API
+`GET /health`, `GET /v1/config`, `GET /v1/provider/capabilities`,
+`GET /v1/number-types`, `GET /v1/catalog`.
+`POST /v1/orders` and `POST /v1/purchases/verify` currently reject financial transactions.
 
-- `GET /health` — service readiness
-- `GET /v1/config` — client feature flags
-- `GET /v1/catalog` — product catalog (empty until Numberland adapter and pricing verified)
-- `POST /v1/purchases/verify` — gated Bazaar verification, receipt deduplication and pending fulfillment (never activates without the audited provider adapter)
+## Callinoo integration
+`worker/src/callinoo-adapter.js` contains the internal **read-only** integration
+contract (balance, service discovery and per-service prices). The token stays on
+Cloudflare only. It is not exposed to the Android app or the public API.
+The documented URL forms still require live authentication testing before enabling commerce.
+See `docs/CALLINOO.md`.
 
-**Never enable production billing until automated provider ordering, fulfillment reconciliation, and account binding have been verified.**
-
-## Quick start
-
-1. Install JDK 17, Android SDK 35, and Gradle 8.11.1.
-2. `cd android && gradle :app:assembleDebug`.
-3. Worker: `cd worker && npm install && npx wrangler deploy` after logging into Cloudflare.
-4. Follow `docs/SETUP.md` and `docs/SIGNING.md`.
-
-The Numberland API endpoint was not publicly accessible during initial implementation. Do not invent endpoint paths or credentials.
-
-## Versioning
-
-Initial Android `versionCode=1`, `versionName=1.0.0`. Future updates must retain the *same* applicationId and original release signing key.
+## Local development
+```bash
+cd worker && npm install && npm test && npm run dev
+cd ../android && gradle :app:assembleDebug
+```
+For release signing, retain the permanent original keystore as described in
+`docs/SIGNING.md`. Never commit release signing keys or third-party API tokens.
