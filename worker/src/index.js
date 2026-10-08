@@ -1,5 +1,8 @@
+import { NUMBER_TYPES, PROVIDER_STEPS } from "./number-domain.js";
+import { isNumberlandConfigured } from "./numberland-adapter.js";
+
 const BRAND = "BlueNumber";
-const PROVIDER_IMPLEMENTED = false; // Switch only after implementing Numberland's verified API contract.
+const PROVIDER_IMPLEMENTED = isNumberlandConfigured(); // Fail closed until the real supplier API is verified.
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -105,6 +108,12 @@ export default {
       return json({ ok: true, service: "bluenamber-api", version: "1.0.0" });
     if (request.method === "GET" && url.pathname === "/v1/config")
       return json({ brand: BRAND, provider: "numberland", paymentsEnabled: isReady(env), providerConnected: false });
+    if (request.method === "GET" && url.pathname === "/v1/number-types")
+      return json({ items: NUMBER_TYPES, live: PROVIDER_IMPLEMENTED });
+    if (request.method === "GET" && url.pathname === "/v1/provider/capabilities")
+      return json({ provider: "numberland", connected: PROVIDER_IMPLEMENTED, paymentsEnabled: isReady(env), steps: PROVIDER_STEPS });
+    if (request.method === "POST" && url.pathname === "/v1/orders")
+      return json({ error: "PROVIDER_NOT_CONNECTED", message: "Real Numberland contract not configured; no order has been placed" }, 503);
     if (request.method === "GET" && url.pathname === "/v1/catalog")
       return json({ items: products(env), available: isReady(env), notice: isReady(env) ? null : "Integration pending provider verification" });
     if (request.method === "POST" && url.pathname === "/v1/purchases/verify")
