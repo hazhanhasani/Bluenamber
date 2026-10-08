@@ -1,0 +1,21 @@
+name: Worker tests
+on:
+  push:
+    branches: [main]
+    paths: ['worker/**', '.github/workflows/worker.yml']
+  pull_request:
+    paths: ['worker/**', '.github/workflows/worker.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+        working-directory: worker
+      - run: npm test
+        working-directory: worker

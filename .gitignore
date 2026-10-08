@@ -1,0 +1,15 @@
+# Secrets and Android builds
+**/.gradle/
+**/build/
+**/local.properties
+**/.idea/
+**/*.iml
+**/*.jks
+**/*.keystore
+**/release.properties
+**/.dev.vars
+**/.env
+**/node_modules/
+*.apk
+*.aab
+.DS_Store
