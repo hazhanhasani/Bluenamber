@@ -86,7 +86,7 @@ const PAGE = `<!doctype html>
     <section class="details" id="services">
       <article class="card">
         <h2>خدمات شماره مجازی</h2>
-        <p class="small">قیمت و موجودی باید مستقیماً از API کالینو دریافت و تأیید شود؛ تا آن زمان سفارش ساختگی نمایش داده نمی‌شود.</p>
+        <p class="small">قیمت نهایی و موجودی از کالینو به‌روزرسانی می‌شوند. ثبت سفارش تا آماده‌شدن پرداخت و تحویل امن غیرفعال است.</p>
         <div id="service-list" style="padding:14px 0 4px"><span class="tag">در حال دریافت سرویس‌ها…</span></div>
         <div id="quote-label" class="hint" aria-live="polite"></div>
         <div id="country-grid" class="countries"></div>
@@ -96,7 +96,7 @@ const PAGE = `<!doctype html>
         <ol class="steps" style="margin-top:14px">
           <li class="done"><b>استقرار سرور</b><p>Cloudflare Worker و پایگاه‌داده آماده هستند.</p></li>
           <li class="done"><b>ثبت امن کلید</b><p>کلید در Secret قرار می‌گیرد؛ داخل اپ ذخیره نمی‌شود.</p></li>
-          <li><b>تأیید سرویس و قیمت</b><p>نیازمند پاسخ معتبر API کالینو.</p></li>
+          <li class="done"><b>نمایش موجودی و قیمت فروش</b><p>اطلاعات زنده کالینو و قیمت نهایی فروش آماده است.</p></li>
           <li><b>فعال‌سازی سفارش</b><p>پس از احراز هویت، پرداخت و تحویل خودکار.</p></li>
         </ol>
       </article>
@@ -124,7 +124,7 @@ const PAGE = `<!doctype html>
         const state=document.createElement("span");state.className=c.available?"available":"unavailable";
         state.textContent=(c.available?"● موجود":"● ناموجود")+" · +"+String(c.range);
         const price=document.createElement("div");price.className="small";
-        price.textContent=c.retailPriceToman==null?"قیمت فروش در انتظار تنظیم سود":new Intl.NumberFormat("fa-IR").format(c.retailPriceToman)+" تومان";
+        price.textContent=c.retailPriceToman==null?"قیمت نهایی هنوز در دسترس نیست":"قیمت نهایی: "+new Intl.NumberFormat("fa-IR").format(c.retailPriceToman)+" تومان";
         panel.append(title,state,price);box.append(panel);
       }
     } catch {
