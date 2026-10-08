@@ -50,3 +50,9 @@ show unsupported products.
 `GET /v1/number-types` currently offers only a standard temporary-number category.
 `GET /v1/catalog` stays empty until stock and prices are confirmed.
 Financial routes remain disabled in production.
+
+## Cloudflare Workers compatibility
+
+Use `fetch(..., { redirect: 'manual' })` and explicitly block all HTTP 3xx responses.
+The Workers runtime does not accept `redirect: 'error'`; using it caused every
+API request to fail before contacting Callinoo. This has been corrected.

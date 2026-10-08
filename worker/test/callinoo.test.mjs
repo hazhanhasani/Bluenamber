@@ -55,7 +55,7 @@ test("Callinoo read methods access only the configured domain and endpoints", as
     "/web/my-private-token/get-prices/tg"
   ]);
   assert.ok(called.every(x => x.init.method === "GET"));
-  assert.ok(called.every(x => x.init.redirect === "error"));
+  assert.ok(called.every(x => x.init.redirect === "manual"));
   assert.equal(isCallinooConfigured({CALLINOO_API_TOKEN:"validtoken"}),true);
   assert.equal(isCallinooConfigured({}),false);
 });
@@ -81,4 +81,12 @@ test("existing safe pricing and order rules remain intact", () => {
   assert.equal(validateSelection({type:"standard",service:"tg",country:"ru"}),true);
   assert.equal(validateSelection({type:"rental",service:"tg",country:"ru"}),false);
   assert.throws(()=>moveOrder({status:"waiting_code",smsReceived:true},"cancel_requested"),/SMS_ALREADY_RECEIVED/);
+});
+
+test("Cloudflare-compatible redirect policy blocks redirects before reading content",async()=>{
+  const a=new CallinooAdapter({token:"fake-token-123",fetcher:async (_url,init)=>{
+    assert.equal(init.redirect,"manual");
+    return {ok:false,status:302,headers:{get:()=>"/spoof"},text:async()=>{throw Error("must not read redirect")}};
+  }});
+  await assert.rejects(a.getBalance(),e=>e.code==="UPSTREAM_REDIRECT_BLOCKED");
 });

@@ -40,9 +40,10 @@ export class CallinooAdapter {
         method: "GET",
         headers: { Accept: "application/json, text/plain;q=0.9" },
         signal: controller.signal,
-        redirect: "error",
+        redirect: "manual", // Cloudflare Workers rejects redirect:"error"; do not follow 3xx.
         cache: "no-store"
       });
+      if (res.status >= 300 && res.status < 400) throw new CallinooError("UPSTREAM_REDIRECT_BLOCKED");
       if (!res.ok) throw new CallinooError("UPSTREAM_HTTP_" + res.status);
       const txt = await res.text();
       if (txt.length > 262144) throw new CallinooError("UPSTREAM_RESPONSE_TOO_LARGE");
