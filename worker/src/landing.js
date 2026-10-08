@@ -51,6 +51,10 @@ const PAGE = `<!doctype html>
     .countries{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:9px;margin-top:14px}
     .country{border:1px solid var(--line);background:#f9fbff;border-radius:13px;padding:11px}
     .country b{font-size:13px;display:block}.country span{font-size:11px;color:var(--muted)}
+    .category-picks{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}
+    .category-picks button{background:#e7eefb;color:var(--blue);border:1px solid #ccdbf1}
+    .category-picks button[aria-pressed="true"]{background:var(--blue);color:white}
+    .section-intro{max-width:710px;font-size:13px;color:var(--muted);margin:10px 0}
     .available{color:#13846f!important}.unavailable{color:#b35a49!important}
     footer{padding:17px 0 25px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted)}
     .footlink{color:#3a5b9a;text-decoration:none}
@@ -101,6 +105,18 @@ const PAGE = `<!doctype html>
         </ol>
       </article>
     </section>
+    <section class="card" id="other-offers" aria-label="سایر محصولات کالینو">
+      <h2>سایر خدمات متصل کالینو</h2>
+      <p class="section-intro">علاوه بر سرویس شماره مجازی، از API رسمی کالینو بسته‌های استارز، پرمیوم و شماره‌های اختصاصی تلگرام دریافت می‌شوند. این بخش فقط برای نمایش خدمات و قیمت نهایی است و خرید فعال نیست.</p>
+      <div class="category-picks" role="group" aria-label="انتخاب نوع محصول">
+        <button type="button" class="btn" data-offer="stars" aria-pressed="false">⭐ استارز تلگرام</button>
+        <button type="button" class="btn" data-offer="premium" aria-pressed="false">💎 تلگرام پرمیوم</button>
+        <button type="button" class="btn" data-offer="telegram-numbers" aria-pressed="false">📱 شماره اختصاصی تلگرام</button>
+      </div>
+      <div id="offer-status" class="hint" aria-live="polite">یکی از دسته‌ها را انتخاب کنید.</div>
+      <div class="countries" id="offer-list"></div>
+      <p class="small">سرویس شماره مجازی سایر برنامه‌ها، مثل واتساپ یا گوگل، تنها پس از فعال شدن در حساب کالینو نمایش داده می‌شود؛ در حال حاضر API این حساب آن‌ها را ارائه نکرده است.</p>
+    </section>
   </main>
   <footer><span>© BlueNumber · بلونامبر</span><span>این صفحه پنل مدیریت کاربران نیست · <a class="footlink" href="/health">وضعیت فنی API</a></span></footer>
 </div>
@@ -108,6 +124,40 @@ const PAGE = `<!doctype html>
 (function () {
   "use strict";
   const get = id => document.getElementById(id);
+  async function loadExtra(category) {
+    const valid=["stars","premium","telegram-numbers"];
+    if(!valid.includes(category))return;
+    const target=get("offer-list");target.textContent="";
+    get("offer-status").textContent="در حال دریافت محصولات کالینو…";
+    for(const btn of document.querySelectorAll("[data-offer]"))
+      btn.setAttribute("aria-pressed",String(btn.dataset.offer===category));
+    try {
+      const res=await fetch("/v1/other-services?category="+encodeURIComponent(category),{cache:"no-store"});
+      if(!res.ok)throw Error("Failed");
+      const out=await res.json();
+      const items=Array.isArray(out.items)?out.items:[];
+      if(category==="telegram-numbers")
+        items.sort((a,b)=>Number(b.available)-Number(a.available));
+      get("offer-status").textContent=String(items.length)+" مورد از کالینو دریافت شد · فروش فعلاً غیرفعال";
+      for (const item of items) {
+        const box=document.createElement("div");box.className="country";
+        const title=document.createElement("b");
+        title.textContent=String(category==="telegram-numbers"?item.country:item.title);
+        const state=document.createElement("span");
+        state.className=item.available?"available":"unavailable";
+        state.textContent=(item.available?"● موجود":"● ناموجود")+
+          (category==="telegram-numbers"?" · +"+String(item.range):"");
+        const price=document.createElement("div");price.className="small";
+        price.textContent=item.retailPriceToman==null?
+          "قیمت فروش در دسترس نیست":
+          "قیمت نهایی: "+new Intl.NumberFormat("fa-IR").format(item.retailPriceToman)+" تومان";
+        box.append(title,state,price);target.append(box);
+      }
+      if(items.length===0)get("offer-status").textContent="محصول فعالی از کالینو دریافت نشد.";
+    } catch {
+      get("offer-status").textContent="دریافت این دسته فعلاً ناموفق بود؛ دوباره تلاش کنید.";
+    }
+  }
   async function loadQuotes(id,title) {
     get("quote-label").textContent="در حال دریافت کشورهای "+title+"…";
     const box=get("country-grid");box.textContent="";
@@ -181,6 +231,8 @@ const PAGE = `<!doctype html>
       get("provider-note").textContent="پاسخ API در دسترس نیست.";
     }
   }
+  for(const btn of document.querySelectorAll("[data-offer]"))
+    btn.addEventListener("click",()=>loadExtra(btn.dataset.offer));
   get("refresh").addEventListener("click", refresh);
   refresh();
 })();
