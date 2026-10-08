@@ -87,3 +87,26 @@ Website and Android 1.0.2 already request `/v1/quotes?serviceId=<id>`
 and display `retailPriceToman` as the end-user price.
 No APK upgrade is necessary solely for this change.
 Purchasing and Bazaar payment remain intentionally disabled.
+
+## Multiple live catalogues (2026-10-08)
+Callinoo separates account applications from specialized Telegram products.
+The authenticated `/web/{token}/applications` result returned only one application,
+`Telegram Vip panel`. It did **not** return WhatsApp, Instagram, Google, etc.
+Those application IDs cannot be invented or purchased under this account.
+
+Separate read-only, Bearer-authenticated GET endpoints were verified:
+- `GET /telegram-services/stars/` returned **9** packages;
+- `GET /telegram-services/premium/` returned **3** packages;
+- `GET /telegram-numbers/numbers/` returned **154** countries
+  (148 available at the time of the test).
+
+Their safely normalized results are served through
+`GET /v1/other-services?category=stars|premium|telegram-numbers`.
+The website and Android app version 1.0.3 allow browsing those categories.
+All retail prices include the configured 20% markup; raw supplier costs and
+the provider token remain on the server. No purchase paths are enabled.
+
+To sell virtual numbers for WhatsApp, Google or Instagram, first have Callinoo
+enable those services in this account or integrate another verified provider.
+A country list for the Telegram-specific endpoint does not mean those numbers
+are available for arbitrary applications.
