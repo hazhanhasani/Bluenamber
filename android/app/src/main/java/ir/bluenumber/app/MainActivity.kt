@@ -47,6 +47,8 @@ import java.net.URL
 data class CatalogProduct(val id: String, val sku: String, val title: String, val description: String)
 data class CatalogState(val enabled: Boolean, val products: List<CatalogProduct>, val notice: String, val providerConfigured: Boolean = false)
 data class NumberType(val id: String, val title: String, val description: String)
+data class ProviderService(val id: String, val title: String, val code: String)
+data class CountryAvailability(val country: String, val range: String, val available: Boolean, val price: Long?)
 
 class MainActivity : ComponentActivity() {
     private var billing: Payment? = null
@@ -55,6 +57,10 @@ class MainActivity : ComponentActivity() {
     private var status by mutableStateOf("در حال بررسی اتصال ...")
     private var state by mutableStateOf(CatalogState(false, emptyList(), ""))
     private var numberTypes by mutableStateOf<List<NumberType>>(emptyList())
+    private var providerServices by mutableStateOf<List<ProviderService>>(emptyList())
+    private var selectedServiceTitle by mutableStateOf("")
+    private var countryAvailability by mutableStateOf<List<CountryAvailability>>(emptyList())
+    private var countryStatus by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,7 +98,7 @@ class MainActivity : ComponentActivity() {
                                     Spacer(Modifier.height(8.dp))
                                     Text(status, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
                                     Spacer(Modifier.height(12.dp))
-                                    Button(onClick = { refresh(); refreshNumberTypes() }) { Text("بروزرسانی") }
+                                    Button(onClick = { refresh(); refreshNumberTypes(); refreshProviderServices() }) { Text("بروزرسانی") }
                                 }
                             }
                         }
@@ -117,7 +123,48 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
-                        if (state.products.isEmpty()) {
+                        item {
+                            Text("سرویس‌های کالینو", fontWeight = FontWeight.Bold,
+                                modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right,
+                                style = MaterialTheme.typography.titleLarge)
+                        }
+                        items(providerServices) { service ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(18.dp)) {
+                                    Text(service.title, fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                                    Spacer(Modifier.height(7.dp))
+                                    Button(onClick = { refreshCountries(service) }) {
+                                        Text("مشاهده کشورها و موجودی")
+                                    }
+                                }
+                            }
+                        }
+                        if (selectedServiceTitle.isNotBlank()) {
+                            item {
+                                Text("کشورهای " + selectedServiceTitle,
+                                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right,
+                                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(countryStatus, modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Right)
+                            }
+                            items(countryAvailability) { country ->
+                                Card(Modifier.fillMaxWidth()) {
+                                    Column(Modifier.padding(15.dp)) {
+                                        Text(country.country + "  (+" + country.range + ")",
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Right, fontWeight = FontWeight.Bold)
+                                        Text(if (country.available) "● موجود" else "● ناموجود",
+                                            color = if (country.available) Color(0xFF13856F) else Color(0xFFC16B5A),
+                                            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                                        Text(country.price?.let { "%,d تومان".format(it) }
+                                            ?: "قیمت نهایی پس از تنظیم سود نمایش داده می‌شود",
+                                            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                                    }
+                                }
+                            }
+                        }
+                        if (state.products.isEmpty() && providerServices.isEmpty()) {
                             item {
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(24.dp)) {
@@ -149,6 +196,7 @@ class MainActivity : ComponentActivity() {
         connectBilling()
         refresh()
         refreshNumberTypes()
+        refreshProviderServices()
     }
 
     private fun connectBilling() {
@@ -226,6 +274,69 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 // Product categories can be retried without blocking the entire app.
                 numberTypes = emptyList()
+            }
+        }
+    }
+
+    private fun refreshProviderServices() {
+        lifecycleScope.launch {
+            try {
+                val list = withContext(Dispatchers.IO) {
+                    val connection = URL(BuildConfig.API_BASE_URL + "/v1/services")
+                        .openConnection() as HttpURLConnection
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 15000
+                    try {
+                        val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+                        val array = json.getJSONArray("items")
+                        buildList {
+                            for (i in 0 until array.length()) {
+                                val item = array.getJSONObject(i)
+                                add(ProviderService(item.getString("id"),
+                                    item.getString("title"), item.optString("code")))
+                            }
+                        }
+                    } finally { connection.disconnect() }
+                }
+                providerServices = list
+            } catch (e: Exception) {
+                providerServices = emptyList()
+            }
+        }
+    }
+
+    private fun refreshCountries(service: ProviderService) {
+        selectedServiceTitle = service.title
+        countryAvailability = emptyList()
+        countryStatus = "در حال دریافت کشورهای موجود…"
+        lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    val connection = URL(BuildConfig.API_BASE_URL + "/v1/quotes?serviceId=" + service.id)
+                        .openConnection() as HttpURLConnection
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 20000
+                    try {
+                        val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+                        val array = json.getJSONArray("items")
+                        buildList {
+                            for (i in 0 until array.length()) {
+                                val item = array.getJSONObject(i)
+                                add(CountryAvailability(
+                                    country = item.getString("country"),
+                                    range = item.getString("range"),
+                                    available = item.optBoolean("available", false),
+                                    price = if (item.isNull("retailPriceToman")) null
+                                        else item.getLong("retailPriceToman")
+                                ))
+                            }
+                        }
+                    } finally { connection.disconnect() }
+                }
+                countryAvailability = result.sortedByDescending { it.available }
+                countryStatus = result.size.toString() + " کشور دریافت شد؛ خرید هنوز غیرفعال است."
+            } catch (e: Exception) {
+                countryStatus = "دریافت کشورها ناموفق بود؛ دوباره تلاش کنید."
             }
         }
     }
