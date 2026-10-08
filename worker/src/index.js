@@ -1,6 +1,6 @@
 import { NUMBER_TYPES, PROVIDER_STEPS } from "./number-domain.js";
 import { isCallinooConfigured, CallinooAdapter } from "./callinoo-adapter.js";
-import { normalizeServices } from "./service-catalog.js";
+import { normalizeServices, normalizeCountryAvailability } from "./service-catalog.js";
 import { landingResponse, faviconResponse } from "./landing.js";
 
 const BRAND = "BlueNumber";
@@ -123,6 +123,25 @@ export default {
         return json({provider:"callinoo",providerConnected:true,items,paymentsEnabled:false});
       } catch {
         return json({error:"UPSTREAM_UNAVAILABLE",providerConnected:false,items:[]},502);
+      }
+    }
+    if (request.method === "GET" && url.pathname === "/v1/quotes") {
+      if (!isCallinooConfigured(env)) return json({error:"PROVIDER_NOT_CONFIGURED",items:[]},503);
+      const serviceId=url.searchParams.get("serviceId") || "";
+      if(!/^[1-9][0-9]{0,11}$/.test(serviceId)) return json({error:"INVALID_SERVICE_ID"},400);
+      try {
+        const adapter=new CallinooAdapter({token:env.CALLINOO_API_TOKEN});
+        const services=normalizeServices(await adapter.listApplications());
+        if(!services.some(s=>s.id===serviceId)) return json({error:"UNKNOWN_SERVICE"},404);
+        const quotes=await adapter.getPrices(serviceId);
+        const rawMarkup=env.RETAIL_MARKUP_BPS;
+        const markup=(typeof rawMarkup==="string" && /^[0-9]{1,6}$/.test(rawMarkup))?Number(rawMarkup):null;
+        const rawFee=env.RETAIL_FIXED_FEE_TOMAN;
+        const fee=(typeof rawFee==="string" && /^[0-9]{1,10}$/.test(rawFee))?Number(rawFee):0;
+        const items=normalizeCountryAvailability(quotes,markup,fee);
+        return json({items,currency:"TOMAN",pricingConfigured:markup!==null&&markup<=100000,paymentsEnabled:false});
+      } catch {
+        return json({error:"UPSTREAM_UNAVAILABLE",items:[]},502);
       }
     }
     if (request.method === "GET" && url.pathname === "/v1/number-types")
