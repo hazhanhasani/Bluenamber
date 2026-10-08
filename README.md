@@ -1,14 +1,14 @@
 # BlueNumber / بلونامبر
 
 Native Android storefront and Cloudflare Worker for virtual-number services.
-**Provider: Callinoo (Ozvinoo API)** — https://api.ozvinoo.xyz/
+**Provider: Callinoo (Ozvinoo API)** — https://api.ozvinoo.xyz/\n\nLive read-only service/country inventory is connected. Billing and ordering remain disabled.
 
 ## Current deployment status
 - **GitHub**: https://github.com/hazhanhasani/Bluenamber
 - **Worker**: https://bluenamber.hazhanhasani4268-0f9.workers.dev
 - **Database**: Cloudflare D1 `bluenamber-db`
 - **Android**: Kotlin / Jetpack Compose; package `ir.bluenumber.app`
-- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.
+- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.\n- **Browse live country stock**: `/v1/services`, `/v1/quotes?serviceId=1`. Retail prices are hidden until markup configured.
 - **Numberland**: removed as the active integration. Historic order records retain their original provider identifier.
 
 ## Web home page
@@ -41,4 +41,4 @@ For release signing, retain the permanent original keystore as described in
 rotating signing keys. They cannot replace another CI debug APK installed under
 the same package. Use the permanent release key for every distributed update;
 users of old debug builds must uninstall the incompatible debug package once.
-The release version is now `1.0.1` (`versionCode=2`).
+The release version is now `1.0.2` (`versionCode=3`).
