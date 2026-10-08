@@ -46,6 +46,7 @@ import java.net.URL
 
 data class CatalogProduct(val id: String, val sku: String, val title: String, val description: String)
 data class CatalogState(val enabled: Boolean, val products: List<CatalogProduct>, val notice: String)
+data class NumberType(val id: String, val title: String, val description: String)
 
 class MainActivity : ComponentActivity() {
     private var billing: Payment? = null
@@ -53,6 +54,7 @@ class MainActivity : ComponentActivity() {
     private var billingConnected by mutableStateOf(false)
     private var status by mutableStateOf("در حال بررسی اتصال ...")
     private var state by mutableStateOf(CatalogState(false, emptyList(), ""))
+    private var numberTypes by mutableStateOf<List<NumberType>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +92,28 @@ class MainActivity : ComponentActivity() {
                                     Spacer(Modifier.height(8.dp))
                                     Text(status, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
                                     Spacer(Modifier.height(12.dp))
-                                    Button(onClick = { refresh() }) { Text("بروزرسانی") }
+                                    Button(onClick = { refresh(); refreshNumberTypes() }) { Text("بروزرسانی") }
+                                }
+                            }
+                        }
+                        item {
+                            Text("نوع شماره مجازی", fontWeight = FontWeight.Bold,
+                                modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right,
+                                style = MaterialTheme.typography.titleLarge)
+                        }
+                        items(numberTypes) { type ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(20.dp)) {
+                                    Text(type.title, fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(type.description, modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Right)
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("در انتظار فعال‌سازی موجودی و پرداخت", color = Color(0xFF526789),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
                                 }
                             }
                         }
@@ -125,6 +148,7 @@ class MainActivity : ComponentActivity() {
         }
         connectBilling()
         refresh()
+        refreshNumberTypes()
     }
 
     private fun connectBilling() {
@@ -167,6 +191,37 @@ class MainActivity : ComponentActivity() {
                 status = if (updated.enabled) "سرویس آماده است" else "اتصال اصلی در حال تکمیل است؛ خرید غیرفعال است."
             } catch (e: Exception) {
                 status = "اتصال برقرار نشد. اتصال اینترنت را بررسی کنید."
+            }
+        }
+    }
+
+    private fun refreshNumberTypes() {
+        lifecycleScope.launch {
+            try {
+                val types = withContext(Dispatchers.IO) {
+                    val connection = URL(BuildConfig.API_BASE_URL + "/v1/number-types")
+                        .openConnection() as HttpURLConnection
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
+                    connection.setRequestProperty("Accept", "application/json")
+                    try {
+                        val obj = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+                        val items = obj.getJSONArray("items")
+                        buildList {
+                            for (i in 0 until items.length()) {
+                                val item = items.getJSONObject(i)
+                                add(NumberType(
+                                    item.getString("id"), item.getString("title"),
+                                    item.optString("description")
+                                ))
+                            }
+                        }
+                    } finally { connection.disconnect() }
+                }
+                numberTypes = types
+            } catch (e: Exception) {
+                // Product categories can be retried without blocking the entire app.
+                numberTypes = emptyList()
             }
         }
     }
