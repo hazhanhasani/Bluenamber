@@ -8,7 +8,7 @@ Native Android storefront and Cloudflare Worker for virtual-number services.
 - **Worker**: https://bluenamber.hazhanhasani4268-0f9.workers.dev
 - **Database**: Cloudflare D1 `bluenamber-db`
 - **Android**: Kotlin / Jetpack Compose; package `ir.bluenumber.app`
-- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.\n- **Browse live country stock**: `/v1/services`, `/v1/quotes?serviceId=1`. Retail prices are hidden until markup configured.
+- **Payments**: Bazaar Poolakey scaffold, intentionally disabled until verified delivery, server receipt validation and refund handling exist.\n- **Browse live country stock**: `/v1/services`, `/v1/quotes?serviceId=1`. Retail prices now include a 20% markup calculated server-side in Toman; orders and payments remain disabled.
 - **Numberland**: removed as the active integration. Historic order records retain their original provider identifier.
 
 ## Web home page
@@ -26,7 +26,7 @@ Native Android storefront and Cloudflare Worker for virtual-number services.
 `worker/src/callinoo-adapter.js` contains the internal **read-only** integration
 contract (balance, service discovery and per-service prices). The token stays on
 Cloudflare only. It is not exposed to the Android app or the public API.
-The documented URL forms still require live authentication testing before enabling commerce.
+Read-only API authentication is verified. Purchase fulfillment and customer-payment verification are not yet implemented.
 See `docs/CALLINOO.md`.
 
 ## Local development
