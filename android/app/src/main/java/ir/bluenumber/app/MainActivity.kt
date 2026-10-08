@@ -49,6 +49,8 @@ data class CatalogState(val enabled: Boolean, val products: List<CatalogProduct>
 data class NumberType(val id: String, val title: String, val description: String)
 data class ProviderService(val id: String, val title: String, val code: String)
 data class CountryAvailability(val country: String, val range: String, val available: Boolean, val price: Long?)
+data class ExtraCategory(val key: String, val title: String)
+data class ExtraOffer(val title: String, val available: Boolean, val price: Long?, val range: String?)
 
 class MainActivity : ComponentActivity() {
     private var billing: Payment? = null
@@ -61,6 +63,9 @@ class MainActivity : ComponentActivity() {
     private var selectedServiceTitle by mutableStateOf("")
     private var countryAvailability by mutableStateOf<List<CountryAvailability>>(emptyList())
     private var countryStatus by mutableStateOf("")
+    private var selectedExtraCategory by mutableStateOf("")
+    private var extraStatus by mutableStateOf("")
+    private var extraOffers by mutableStateOf<List<ExtraOffer>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,6 +141,52 @@ class MainActivity : ComponentActivity() {
                                     Spacer(Modifier.height(7.dp))
                                     Button(onClick = { refreshCountries(service) }) {
                                         Text("مشاهده کشورها و موجودی")
+                                    }
+                                }
+                            }
+                        }
+                        item {
+                            Text("سایر محصولات کالینو", fontWeight = FontWeight.Bold,
+                                modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right,
+                                style = MaterialTheme.typography.titleLarge)
+                            Text("استارز، پرمیوم و شماره اختصاصی تلگرام به‌صورت زنده از کالینو دریافت می‌شوند. خرید فعلاً غیرفعال است.",
+                                modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                        }
+                        items(listOf(
+                            ExtraCategory("stars", "⭐ استارز تلگرام"),
+                            ExtraCategory("premium", "💎 تلگرام پرمیوم"),
+                            ExtraCategory("telegram-numbers", "📱 شماره اختصاصی تلگرام")
+                        )) { category ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(18.dp)) {
+                                    Text(category.title, fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(onClick = { refreshExtraCategory(category) }) {
+                                        Text("مشاهده محصولات و قیمت")
+                                    }
+                                }
+                            }
+                        }
+                        if (selectedExtraCategory.isNotBlank()) {
+                            item {
+                                Text("محصولات " + selectedExtraCategory,
+                                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right,
+                                    fontWeight = FontWeight.Bold)
+                                Text(extraStatus, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                            }
+                            items(extraOffers) { extra ->
+                                Card(Modifier.fillMaxWidth()) {
+                                    Column(Modifier.padding(16.dp)) {
+                                        Text(extra.title + (extra.range?.let { " (+" + it + ")" } ?: ""),
+                                            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right,
+                                            fontWeight = FontWeight.Bold)
+                                        Text(if (extra.available) "● موجود" else "● ناموجود",
+                                            color = if (extra.available) Color(0xFF13856F) else Color(0xFFC16B5A),
+                                            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
+                                        Text(extra.price?.let { "قیمت نهایی: %,d تومان".format(it) }
+                                            ?: "قیمت نهایی فعلاً در دسترس نیست",
+                                            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
                                     }
                                 }
                             }
@@ -337,6 +388,49 @@ class MainActivity : ComponentActivity() {
                 countryStatus = result.size.toString() + " کشور دریافت شد؛ خرید هنوز غیرفعال است."
             } catch (e: Exception) {
                 countryStatus = "دریافت کشورها ناموفق بود؛ دوباره تلاش کنید."
+            }
+        }
+    }
+
+    private fun refreshExtraCategory(category: ExtraCategory) {
+        selectedExtraCategory = category.title
+        extraOffers = emptyList()
+        extraStatus = "در حال دریافت لیست محصولات…"
+        lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    val request = URL(BuildConfig.API_BASE_URL +
+                        "/v1/other-services?category=" + category.key)
+                        .openConnection() as HttpURLConnection
+                    request.connectTimeout = 10000
+                    request.readTimeout = 20000
+                    try {
+                        val response = JSONObject(request.inputStream.bufferedReader().use { it.readText() })
+                        val array = response.getJSONArray("items")
+                        buildList {
+                            for(i in 0 until array.length()) {
+                                val item = array.getJSONObject(i)
+                                val title = if (category.key == "telegram-numbers") {
+                                    item.optString("country", "کشور")
+                                } else {
+                                    item.optString("title", "محصول")
+                                }
+                                add(ExtraOffer(
+                                    title,
+                                    item.optBoolean("available", false),
+                                    if (item.isNull("retailPriceToman")) null
+                                        else item.optLong("retailPriceToman"),
+                                    if (category.key == "telegram-numbers")
+                                        item.optString("range") else null
+                                ))
+                            }
+                        }
+                    } finally { request.disconnect() }
+                }
+                extraOffers = result.sortedByDescending { it.available }
+                extraStatus = result.size.toString() + " مورد دریافت شد · خرید غیرفعال است."
+            } catch (e: Exception) {
+                extraStatus = "دریافت محصولات ناموفق بود؛ دوباره تلاش کنید."
             }
         }
     }
