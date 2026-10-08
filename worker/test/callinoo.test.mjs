@@ -91,3 +91,28 @@ test("Cloudflare-compatible redirect policy blocks redirects before reading cont
   }});
   await assert.rejects(a.getBalance(),e=>e.code==="UPSTREAM_REDIRECT_BLOCKED");
 });
+
+test("separate authenticated catalogue URLs are read-only and fixed",async()=>{
+  const urls=[];
+  const adapter=new CallinooAdapter({token:"fake-secret-for-test",
+    fetcher:async(url,options)=>{
+      urls.push({url,options});
+      return {status:200,ok:true,text:async()=>JSON.stringify({
+        status:true,data:[{package:"Demo",price:5,status:true}]})};
+    }});
+  await adapter.listStars();
+  await adapter.listPremium();
+  await adapter.listTelegramNumbers();
+  assert.deepEqual(urls.map(v=>new URL(v.url).pathname),[
+    "/telegram-services/stars/","/telegram-services/premium/","/telegram-numbers/numbers/"
+  ]);
+  assert.ok(urls.every(v=>v.options.method==="GET"));
+  assert.ok(urls.every(v=>v.options.redirect==="manual"));
+  assert.ok(urls.every(v=>v.options.headers.Authorization==="Bearer fake-secret-for-test"));
+});
+test("fail closed on unauthenticated Stars/Premium response",async()=>{
+  const adapter=new CallinooAdapter({token:"fake-secret-for-test",
+    fetcher:async()=>({status:403,ok:false,text:async()=>JSON.stringify({status:false})})});
+  await assert.rejects(adapter.listStars(),/UPSTREAM_HTTP_403/);
+  await assert.rejects(adapter.listPremium(),/UPSTREAM_HTTP_403/);
+});
