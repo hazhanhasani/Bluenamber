@@ -46,6 +46,12 @@ const PAGE = `<!doctype html>
     .steps li.done:before{background:#28a588;box-shadow:0 0 0 1px #28a588}
     .steps b{font-size:14px}.steps p{margin:0;font-size:12px;color:var(--muted)}
     .tag{display:inline-block;border-radius:50px;background:#fff0dc;color:#975800;font-size:11px;padding:2px 11px;margin-top:8px}
+    .service-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:9px 0;padding:10px;border:1px solid var(--line);border-radius:13px}
+    .service-row .btn{background:var(--blue);color:#fff;font-size:12px;min-height:38px}
+    .countries{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:9px;margin-top:14px}
+    .country{border:1px solid var(--line);background:#f9fbff;border-radius:13px;padding:11px}
+    .country b{font-size:13px;display:block}.country span{font-size:11px;color:var(--muted)}
+    .available{color:#13846f!important}.unavailable{color:#b35a49!important}
     footer{padding:17px 0 25px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted)}
     .footlink{color:#3a5b9a;text-decoration:none}
     @media(max-width:760px){.wrap{padding:14px}header{padding:7px 2px 16px}nav{gap:9px}nav a{font-size:12px}.hero{padding:31px 23px;border-radius:24px}h1{margin-top:15px}.cards{grid-template-columns:1fr}.details{grid-template-columns:1fr}.headrow{display:block}.card{padding:20px}h2{font-size:19px}}
@@ -81,7 +87,9 @@ const PAGE = `<!doctype html>
       <article class="card">
         <h2>خدمات شماره مجازی</h2>
         <p class="small">قیمت و موجودی باید مستقیماً از API کالینو دریافت و تأیید شود؛ تا آن زمان سفارش ساختگی نمایش داده نمی‌شود.</p>
-        <div id="service-list" style="padding:14px 0 4px"><span class="tag">شماره موقت — در حال آماده‌سازی</span></div>
+        <div id="service-list" style="padding:14px 0 4px"><span class="tag">در حال دریافت سرویس‌ها…</span></div>
+        <div id="quote-label" class="hint" aria-live="polite"></div>
+        <div id="country-grid" class="countries"></div>
       </article>
       <article class="card">
         <h2>مراحل راه‌اندازی</h2>
@@ -100,6 +108,29 @@ const PAGE = `<!doctype html>
 (function () {
   "use strict";
   const get = id => document.getElementById(id);
+  async function loadQuotes(id,title) {
+    get("quote-label").textContent="در حال دریافت کشورهای "+title+"…";
+    const box=get("country-grid");box.textContent="";
+    try {
+      const r=await fetch("/v1/quotes?serviceId="+encodeURIComponent(id),{cache:"no-store"});
+      if(!r.ok)throw Error("Unreachable");
+      const data=await r.json();
+      const countries=Array.isArray(data.items)?data.items:[];
+      countries.sort((a,b)=>Number(b.available)-Number(a.available));
+      get("quote-label").textContent=String(countries.length)+" کشور / "+String(countries.filter(x=>x.available).length)+" مورد موجود";
+      for (const c of countries) {
+        const panel=document.createElement("div");panel.className="country";
+        const title=document.createElement("b");title.textContent=String(c.country);
+        const state=document.createElement("span");state.className=c.available?"available":"unavailable";
+        state.textContent=(c.available?"● موجود":"● ناموجود")+" · +"+String(c.range);
+        const price=document.createElement("div");price.className="small";
+        price.textContent=c.retailPriceToman==null?"قیمت فروش در انتظار تنظیم سود":new Intl.NumberFormat("fa-IR").format(c.retailPriceToman)+" تومان";
+        panel.append(title,state,price);box.append(panel);
+      }
+    } catch {
+      get("quote-label").textContent="کشورها فعلاً در دسترس نیستند؛ دوباره تلاش کنید.";
+    }
+  }
   async function refresh() {
     get("checked").textContent="در حال دریافت آخرین وضعیت…";
     try {
@@ -125,7 +156,25 @@ const PAGE = `<!doctype html>
         list.append(span);
       }
       if(!list.children.length){list.textContent="لیست محصولات هنوز تأیید نشده است.";}
-      get("checked").textContent="وضعیت به‌روزرسانی شد";
+      const serviceList=get("service-list");serviceList.textContent="";
+      try {
+        const srv=await fetch("/v1/services",{cache:"no-store"});
+        if(!srv.ok)throw Error("Failed");
+        const serviceData=await srv.json();
+        const services=Array.isArray(serviceData.items)?serviceData.items:[];
+        for (const service of services) {
+          const line=document.createElement("div");line.className="service-row";
+          const name=document.createElement("strong");name.textContent=String(service.title);
+          const btn=document.createElement("button");btn.type="button";btn.className="btn";
+          btn.textContent="نمایش کشورها";btn.addEventListener("click",()=>loadQuotes(service.id,service.title));
+          line.append(name,btn);serviceList.append(line);
+        }
+        if(!services.length){serviceList.textContent="در حال حاضر سرویس قابل نمایشی یافت نشد.";}
+        get("checked").textContent="فهرست خدمات از کالینو دریافت شد";
+      } catch {
+        serviceList.textContent="دریافت فهرست سرویس‌ها ممکن نشد.";
+        get("checked").textContent="بروزرسانی سرویس‌ها ناموفق بود.";
+      }
     } catch {
       get("checked").textContent="امکان بررسی آنلاین نبود؛ دوباره تلاش کنید.";
       get("provider-state").textContent="نامشخص";
