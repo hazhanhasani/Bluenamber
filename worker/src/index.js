@@ -1,5 +1,6 @@
 import { NUMBER_TYPES, PROVIDER_STEPS } from "./number-domain.js";
-import { isCallinooConfigured } from "./callinoo-adapter.js";
+import { isCallinooConfigured, CallinooAdapter } from "./callinoo-adapter.js";
+import { normalizeServices } from "./service-catalog.js";
 import { landingResponse, faviconResponse } from "./landing.js";
 
 const BRAND = "BlueNumber";
@@ -113,6 +114,17 @@ export default {
       return json({ ok: true, service: "bluenamber-api", version: "1.1.0" });
     if (request.method === "GET" && url.pathname === "/v1/config")
       return json({ brand: BRAND, provider: "callinoo", providerConfigured: isCallinooConfigured(env), paymentsEnabled: isReady(env), providerConnected: false });
+    if (request.method === "GET" && url.pathname === "/v1/services") {
+      if (!isCallinooConfigured(env)) return json({error:"PROVIDER_NOT_CONFIGURED",items:[]},503);
+      try {
+        const adapter=new CallinooAdapter({token:env.CALLINOO_API_TOKEN});
+        const data=await adapter.listApplications();
+        const items=normalizeServices(data);
+        return json({provider:"callinoo",providerConnected:true,items,paymentsEnabled:false});
+      } catch {
+        return json({error:"UPSTREAM_UNAVAILABLE",providerConnected:false,items:[]},502);
+      }
+    }
     if (request.method === "GET" && url.pathname === "/v1/number-types")
       return json({ items: NUMBER_TYPES, live: PROVIDER_IMPLEMENTED });
     if (request.method === "GET" && url.pathname === "/v1/provider/capabilities")

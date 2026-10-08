@@ -24,3 +24,9 @@ test("billing endpoint refuses financial activity", async () => {
   const response = await api.fetch(new Request("https://example.com/v1/purchases/verify", { method: "POST", body: "{}" }), {});
   assert.equal(response.status, 503);
 });
+
+test("real service listing is disabled without a verified provider token",async()=>{
+  const res=await api.fetch(new Request("https://example.com/v1/services"),{});
+  assert.equal(res.status,503);
+  assert.deepEqual((await res.json()).items,[]);
+});
