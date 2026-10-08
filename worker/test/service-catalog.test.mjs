@@ -22,4 +22,6 @@ test("supplier costs are omitted without retail pricing configuration",()=>{
   assert.equal(hidden[0].retailPriceToman,null);
   assert.doesNotMatch(JSON.stringify(hidden),/12000|13000/);
   assert.deepEqual(normalizeCountryAvailability(source,2000).map(x=>x.retailPriceToman),[14400,15600]);
+  assert.equal(normalizeCountryAvailability([{country:"Test",price:12001,range:98,count:"✅ موجود"}],2000)[0].retailPriceToman,14402);
+  assert.deepEqual(normalizeCountryAvailability([{country:"Overflow",price:Number.MAX_SAFE_INTEGER,range:1,count:"✅ موجود"}],2000),[]);
 });
